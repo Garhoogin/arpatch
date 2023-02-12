@@ -52,13 +52,14 @@ void writeFileToAddress(const char *path, uint32_t address) {
 	free(code);
 }
 
-int assemble(char *lineAsm, uint32_t addr) {
+int assemble(char *lineAsm, int emitThumb, uint32_t addr) {
 	char textBuffer[1024];
 	int result;
 	FILE *pp;
 	
 	//assemble
-	pp = popen("arm-none-eabi-as -mthumb-interwork -o " ASOUT_OUT, "w");
+	sprintf(textBuffer, "arm-none-eabi-as -mthumb-interwork -o " ASOUT_OUT " %s", emitThumb ? "-mthumb" : "");
+	pp = popen(textBuffer, "w");
 	fprintf(pp, ".global _start\n_start:\n%s\n", lineAsm);
 	result = pclose(pp);
 	if (result) return result;
@@ -83,7 +84,7 @@ int assemble(char *lineAsm, uint32_t addr) {
 }
 
 void writeHooksFromFile(const char *path) {
-	int lineLength, exitStatus;
+	int lineLength, exitStatus, emitThumb;
 	char *lineAsm, c;
 	uint32_t addr;
 	FILE *fp = fopen(path, "r");
@@ -91,7 +92,7 @@ void writeHooksFromFile(const char *path) {
 	//parse by line. First part of a line is the address in hex. Rest is assembly.
 	char line[1024];
 	do {
-		lineLength = 0;
+		emitThumb = lineLength = 0;
 		memset(line, 0, sizeof(line));
 		while (c = getc(fp), c != EOF && c != '\r' && c != '\n') {
 			line[lineLength++] = c;
@@ -102,10 +103,16 @@ void writeHooksFromFile(const char *path) {
 		
 		//hex integer at the beginning of the line is the address
 		addr = strtol(line, &lineAsm, 16);
+		
+		//if next char is t or T, emit thumb code
+		if (*lineAsm == 't' || *lineAsm == 'T') {
+			emitThumb = 1;
+			lineAsm++;
+		}
 		lineAsm++;
 		
 		//assemble to zzzpatch.bin
-		exitStatus = assemble(lineAsm, addr);
+		exitStatus = assemble(lineAsm, emitThumb, addr);
 		if (exitStatus) {
 			printf("!!! Assembly failure: hook %08X\n", addr);
 			break;
