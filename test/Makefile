@@ -26,15 +26,61 @@ INCLUDES	:=	include source
 ARCH	:=	
 
 CFLAGS	:=	-g -Wall -Os\
- 		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
-		-ffast-math -fshort-wchar -fno-short-enums
+ 		-march=armv5te -mtune=arm946e-s -fomit-frame-pointer -std=gnu99 \
+		-ffast-math -fshort-wchar -mthumb-interwork -fno-short-enums\
+		-DARM9 -nodefaultlibs -I. -fno-builtin -Wno-unknown-pragmas \
+		-Wno-unused-function -c -DSDK_ARM9 -DSDK_TS -D_NITRO \
+		-DSDK_SVC_WAITVBLANK_COMPATIBLE -DNITRODWC_NOGS
 
-CFLAGS	+=	$(INCLUDE) -DARM9 -nodefaultlibs -I. -fno-builtin -c
+CFLAGS	+=	$(INCLUDE)
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-T $(CURDIR)/../symbols.x -T $(CURDIR)/../linker.x -g $(ARCH)
 
 LDFLAGS += -Ttext $(shell cat ../baseaddr.txt)
+
+#---------------------------------------------------------------------------------
+# include SDK and NITRO-System headers if present (full paths as env vars)
+#---------------------------------------------------------------------------------
+ifdef NITROSDK_ROOT
+	SDK_INCLUDE	:=	/$(subst :,,$(subst \,/,$(NITROSDK_ROOT)))/include
+endif
+ifdef NITROSDK3_ROOT
+	SDK_INCLUDE	:=	/$(subst :,,$(subst \,/,$(NITROSDK3_ROOT)))/include
+endif
+
+ifdef NITROSYSTEM_ROOT
+	NNS_INCLUDE	:=	/$(subst :,,$(subst \,/,$(NITROSYSTEM_ROOT)))/include
+endif
+ifdef NITROSYSTEM050901_ROOT
+	NNS_INCLUDE	:=	/$(subst :,,$(subst \,/,$(NITROSYSTEM050901_ROOT)))/include
+endif
+
+ifdef NITROWIFI_ROOT
+	NITROWIFI_INCLUDE :=	/$(subst :,,$(subst \,/,$(NITROWIFI_ROOT)))/include
+endif
+
+ifdef NITRODWC_ROOT
+	NITRODWC_INCLUDE :=	/$(subst :,,$(subst \,/,$(NITRODWC_ROOT)))/include
+endif
+ifdef NITRODWC1_2_ROOT
+	NITRODWC_INCLUDE :=	/$(subst :,,$(subst \,/,$(NITRODWC1_2_ROOT)))/include
+endif
+
+
+
+ifdef SDK_INCLUDE
+	CFLAGS += -isystem $(SDK_INCLUDE)
+endif
+ifdef NNS_INCLUDE
+	CFLAGS += -isystem $(NNS_INCLUDE)
+endif
+ifdef NITROWIFI_INCLUDE
+	CFLAGS += -isystem $(NITROWIFI_INCLUDE)
+endif
+ifdef NITRODWC_INCLUDE
+	CFLAGS += -isystem $(NITRODWC_INCLUDE)
+endif
 
 #---------------------------------------------------------------------------------
 # any extra libraries we wish to link with the project (order is important)
